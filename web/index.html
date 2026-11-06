@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CrackTwin 관리자 (임시)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <h1>CrackTwin</h1>
+  <div class="sub">구조물 균열 관리 시스템</div>
+  <button data-p="dash" class="on"><span class="n">1</span>대시보드</button>
+  <button data-p="view"><span class="n">2</span>3D 시각화</button>
+  <button data-p="crack"><span class="n">3</span>균열 정보</button>
+  <button data-p="drone"><span class="n">4</span>드론 제어</button>
+</nav>
+<main>
+  <div class="status"><span class="dot" id="dot"></span><span id="stat">서버 확인 중…</span></div>
+
+  <!-- 1. 대시보드 -->
+  <section class="page on" id="dash">
+    <div class="hero">
+      <h2>균열은 방치하면 사고가 됩니다</h2>
+      <p>드론이 촬영하고 AI가 탐지합니다. 위험 균열을 즉시 확인하고 대응하세요.</p>
+      <button onclick="document.querySelector('[data-p=crack]').click()">균열 현황 확인하기</button>
+    </div>
+    <div class="grid3">
+      <div class="card metric">
+        <div><h3>온도</h3><div class="big" id="temp">--<small>°C</small></div></div>
+        <svg viewBox="0 0 80 100" aria-label="온도계">
+          <rect x="30" y="6" width="20" height="62" fill="#fff" stroke="#111827" stroke-width="3"/>
+          <rect id="thermoFill" x="35" y="40" width="10" height="28" fill="#dc2626"/>
+          <rect x="22" y="66" width="36" height="28" fill="#dc2626" stroke="#111827" stroke-width="3"/>
+          <g stroke="#111827" stroke-width="2"><path d="M54 16h10M54 28h10M54 40h10M54 52h10"/></g>
+        </svg>
+      </div>
+      <div class="card metric">
+        <div><h3>습도</h3><div class="big" id="humi">--<small>%</small></div></div>
+        <svg viewBox="0 0 100 100" aria-label="습도 원그래프">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="#dfe6ee" stroke-width="16"/>
+          <circle id="humiArc" cx="50" cy="50" r="38" fill="none" stroke="#2563eb" stroke-width="16"
+                  stroke-dasharray="0 238.76" transform="rotate(-90 50 50)"/>
+          <text id="humiTxt" x="50" y="56" text-anchor="middle" font-size="20" font-weight="800" fill="#111827">--</text>
+        </svg>
+      </div>
+      <div class="card metric">
+        <div><h3>바람세기</h3><div class="big" id="wind">--<small>m/s</small></div></div>
+        <svg viewBox="0 0 100 80" aria-label="바람">
+          <g class="gust" fill="none" stroke="#111827" stroke-width="5" stroke-linecap="square">
+            <path d="M4 22h56a12 12 0 1 0-12-12"/>
+            <path d="M4 42h76a12 12 0 1 1-12 12"/>
+            <path d="M4 62h44a10 10 0 1 1-10 10"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>작동 가능한 드론 수</h3><div class="big" id="droneCnt">-<small>/ - 대</small></div></div>
+      <div class="card">
+        <h3>건물 위험도 · 균열 진행도</h3>
+        <div class="bar" id="sevBar"></div>
+        <div class="legend"><span><i style="background:var(--safe)"></i>안전 <b id="nSafe">0</b></span><span><i style="background:var(--caution)"></i>주의 <b id="nCaution">0</b></span><span><i style="background:var(--danger)"></i>위험 <b id="nDanger" style="color:var(--danger);font-size:20px">0</b></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 3D 시각화 -->
+  <section class="page" id="view">
+    <h2>3D 시각화</h2>
+    <div id="three"><div class="hint">드래그: 회전 · 휠: 확대/축소 · 점: 균열 위치(초록/노랑/빨강)</div></div>
+  </section>
+
+  <!-- 3. 균열 정보 -->
+  <section class="page" id="crack">
+    <h2>균열 정보</h2>
+    <div class="card">
+      <div class="viewer">
+        <button class="arrow" id="prev">&lt;</button>
+        <div class="img"><img id="cImg" alt="균열 이미지"></div>
+        <button class="arrow" id="next">&gt;</button>
+        <dl>
+          <dt>균열 번호</dt><dd id="cId">-</dd>
+          <dt>위험도</dt><dd id="cSev">-</dd>
+          <dt>길이 / 폭</dt><dd id="cSize">-</dd>
+          <dt>위치 (UE5 cm)</dt><dd id="cPos">-</dd>
+          <dt>탐지 시간</dt><dd id="cTime">-</dd>
+          <dt>신뢰도</dt><dd id="cConf">-</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>균열 진행도 (폭 mm)</h3><div id="progress"></div></div>
+  </section>
+
+  <!-- 4. 드론 제어 -->
+  <section class="page" id="drone">
+    <h2>드론 제어</h2>
+    <div class="grid2">
+      <div class="card">
+        <div class="drone">🚁</div>
+        <div class="row" style="margin-top:14px"><span class="lab">드론 번호</span><b id="dNo">-</b></div>
+        <div class="row"><span class="lab">충전 상태</span><div class="track"><div class="fill" id="dBat"></div></div><b id="dBatTxt"></b></div>
+        <div class="btns"><button data-cmd="patrol">1. 순찰</button><button data-cmd="return">2. 귀환</button></div>
+        <div id="log"></div>
+      </div>
+      <div class="card"><h3>사용 가능 대수</h3><div class="big" id="avail">-<small>대</small></div>
+        <div id="droneList" style="margin-top:12px"></div></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="config.js"></script>
+<script>
+const API = window.APP_CONFIG.API_URL.replace(/\/$/, "");
+const SID = window.APP_CONFIG.STRUCTURE_ID;
+const COLOR = {safe:"#22c55e", caution:"#eab308", danger:"#ef4444"};
+const LABEL = {safe:"안전", caution:"주의", danger:"위험"};
+const $ = id => document.getElementById(id);
+
+// ---- 샘플 데이터 (서버 연결 실패 시 사용) ----
+const MOCK_CRACKS = [
+  {id:1,severity:"danger", confidence:.91,lengthMm:520,widthMm:3.2,pos:{x:1250,y:-150,z:380},createdAt:"2026-11-05T14:20:00"},
+  {id:2,severity:"caution",confidence:.87,lengthMm:420,widthMm:1.8,pos:{x:1250,y:150,z:700},createdAt:"2026-11-05T14:25:00"},
+  {id:3,severity:"safe",   confidence:.82,lengthMm:180,widthMm:.4, pos:{x:600,y:300,z:250},createdAt:"2026-11-05T14:31:00"},
+  {id:4,severity:"caution",confidence:.79,lengthMm:300,widthMm:1.2,pos:{x:900,y:-300,z:900},createdAt:"2026-11-06T09:02:00"},
+];
+const DRONES = [{no:"D-01",bat:86,ok:true},{no:"D-02",bat:54,ok:true},{no:"D-03",bat:12,ok:false}];
+
+let cracks = [], idx = 0, live = false;
+
+async function get(path){
+  const r = await fetch(API + path, {signal: AbortSignal.timeout(4000)});
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+const fileUrl = u => !u ? "" : (u.startsWith("http") ? u : API + u);
+
+// ---- 로드 ----
+async function load(){
+  try{
+    await get("/health");
+    live = true;
+    const list = await get(`/structures/${SID}/cracks`);
+    cracks = Array.isArray(list) ? list : (list.cracks || []);
+    setStatus(true, `서버 연결됨 (${API})`);
+  }catch(e){
+    live = false; cracks = MOCK_CRACKS;
+    setStatus(false, `서버 연결 실패 → 샘플 데이터 표시 중 (${API}) · 주소가 localhost:3000/5173이 아니면 CORS 때문일 수 있음`);
+  }
+  if(!cracks.length) cracks = MOCK_CRACKS, setStatus(live, "서버 연결됨, 균열 데이터 없음 → 샘플 표시");
+  render();
+}
+function setStatus(ok, msg){ $("dot").className = "dot " + (ok ? "ok" : "bad"); $("stat").textContent = msg; }
+
+// ---- 대시보드 ----
+function render(){
+  const n = {safe:0,caution:0,danger:0};
+  cracks.forEach(c => n[c.severity] = (n[c.severity]||0)+1);
+  const total = cracks.length || 1;
+  $("sevBar").innerHTML = ["safe","caution","danger"].map(k =>
+    n[k] ? `<div style="width:${n[k]/total*100}%;background:${COLOR[k]}">${LABEL[k]}</div>` : "").join("");
+  $("nSafe").textContent=n.safe; $("nCaution").textContent=n.caution; $("nDanger").textContent=n.danger;
+  // 환경 센서 / 드론은 API에 없음 → 임시값
+  $("temp").innerHTML = `18.4<small>°C</small>`;
+  $("humi").innerHTML = `52<small>%</small>`;
+  $("wind").innerHTML = `3.1<small>m/s</small>`;
+  // 일러스트 반영 (임시값 기준)
+  const T = 18.4, H = 52;
+  const th = Math.max(0, Math.min(1, (T + 10) / 50)) * 62;      // -10~40°C → 수은 높이
+  $("thermoFill").setAttribute("y", 68 - th); $("thermoFill").setAttribute("height", th);
+  $("humiArc").setAttribute("stroke-dasharray", `${H * 2.3876} 238.76`); // 원둘레 2π·38
+  $("humiTxt").textContent = H + "%";
+  const avail = DRONES.filter(d=>d.ok).length;
+  $("droneCnt").innerHTML = `${avail}<small>/ ${DRONES.length} 대</small>`;
+  $("avail").innerHTML = `${avail}<small>대</small>`;
+  showCrack(); showProgress(); showDrone(0);
+  $("droneList").innerHTML = DRONES.map(d=>`<div class="row"><span class="lab">${d.no}</span><div class="track"><div class="fill" style="width:${d.bat}%;background:${d.bat<20?COLOR.danger:COLOR.safe}"></div></div><span>${d.bat}% ${d.ok?"":"(충전 필요)"}</span></div>`).join("");
+  build3D();
+}
+
+// ---- 균열 정보 ----
+function showCrack(){
+  const c = cracks[idx]; if(!c) return;
+  $("cImg").src = fileUrl(c.overlayUrl || c.imageUrl);
+  $("cImg").alt = "이미지 없음";
+  $("cId").textContent = "#" + c.id;
+  $("cSev").innerHTML = `<span class="tag" style="background:${COLOR[c.severity]}">${LABEL[c.severity]||c.severity}</span>`;
+  $("cSize").textContent = `${c.lengthMm ?? "-"} mm / ${c.widthMm ?? "-"} mm`;
+  const p = c.pos || {};
+  $("cPos").textContent = `${p.x}, ${p.y}, ${p.z}`;
+  $("cTime").textContent = c.createdAt ? new Date(c.createdAt).toLocaleString("ko-KR") : "-";
+  $("cConf").textContent = c.confidence != null ? Math.round(c.confidence*100) + "%" : "-";
+}
+function showProgress(){
+  const max = Math.max(...cracks.map(c=>c.widthMm||0), 1);
+  $("progress").innerHTML = cracks.map((c,i)=>`<div class="row"><span class="lab">#${c.id}</span><div class="track"><div class="fill" style="width:${(c.widthMm||0)/max*100}%;background:${COLOR[c.severity]}"></div></div><span>${c.widthMm} mm</span></div>`).join("");
+}
+$("prev").onclick = () => { idx = (idx-1+cracks.length)%cracks.length; showCrack(); };
+$("next").onclick = () => { idx = (idx+1)%cracks.length; showCrack(); };
+
+// ---- 드론 ----
+let dsel = 0;
+function showDrone(i){
+  const d = DRONES[i];
+  $("dNo").textContent = d.no;
+  $("dBat").style.width = d.bat+"%"; $("dBat").style.background = d.bat<20?COLOR.danger:COLOR.safe;
+  $("dBatTxt").textContent = d.bat+"%";
+}
+const RUN_MS = 3000; // 임시: 실제로는 드론 명령 완료 신호를 받으면 해제
+const logLine = msg => { $("log").innerHTML += `[${new Date().toLocaleTimeString("ko-KR")}] ${msg}<br>`; $("log").scrollTop = 1e6; };
+document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => {
+  const name = b.dataset.cmd === "patrol" ? "순찰" : "귀환";
+  b.classList.add("running"); b.disabled = true;           // 누르면 검은색
+  logLine(`${DRONES[dsel].no} ${name} 시작 (임시: 서버 미연동)`);
+  setTimeout(() => {                                       // 실행 완료 → 다시 흰색
+    b.classList.remove("running"); b.disabled = false;
+    logLine(`${DRONES[dsel].no} ${name} 완료`);
+  }, RUN_MS);
+});
+
+// ---- 3D (임시 건물 박스 + 균열 마커) ----
+let three = null;
+const ueToThree = p => [p.x/100, p.z/100, p.y/100]; // 문서 1-4 ③ 출발점 공식
+function build3D(){
+  const el = $("three");
+  if(!three){
+    const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, .1, 500);
+    const r = new THREE.WebGLRenderer({antialias:true,alpha:true}); el.prepend(r.domElement);
+    scene.add(new THREE.AmbientLight(0xffffff,.7)); const l=new THREE.DirectionalLight(0xffffff,.8); l.position.set(10,20,10); scene.add(l);
+    const g = new THREE.Group(); scene.add(g);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(14,10,8), new THREE.MeshStandardMaterial({color:0x64748b}));
+    b.position.set(7,5,0); g.add(b);
+    scene.add(new THREE.GridHelper(40,40,0x94a3b8,0xb6c6d6));
+    three = {scene,cam,r,g,markers:new THREE.Group(),dist:26,rx:.4,ry:-.6};
+    g.add(three.markers);
+    let drag=false,lx=0,ly=0;
+    el.onmousedown=e=>{drag=true;lx=e.clientX;ly=e.clientY};
+    addEventListener("mouseup",()=>drag=false);
+    addEventListener("mousemove",e=>{if(!drag)return;three.ry+=(e.clientX-lx)*.01;three.rx=Math.max(-1.2,Math.min(1.4,three.rx+(e.clientY-ly)*.01));lx=e.clientX;ly=e.clientY});
+    el.onwheel=e=>{e.preventDefault();three.dist=Math.max(8,Math.min(60,three.dist+e.deltaY*.02))};
+    (function loop(){requestAnimationFrame(loop);
+      const w=el.clientWidth,h=el.clientHeight; if(!w||!h)return;
+      r.setSize(w,h); cam.aspect=w/h; cam.updateProjectionMatrix();
+      cam.position.set(Math.sin(three.ry)*Math.cos(three.rx)*three.dist+7, Math.sin(three.rx)*three.dist+5, Math.cos(three.ry)*Math.cos(three.rx)*three.dist);
+      cam.lookAt(7,5,0); r.render(scene,cam)})();
+  }
+  three.markers.clear();
+  cracks.forEach(c=>{
+    const m = new THREE.Mesh(new THREE.SphereGeometry(.35,16,16), new THREE.MeshBasicMaterial({color:COLOR[c.severity]}));
+    m.position.set(...ueToThree(c.pos||{x:0,y:0,z:0})); three.markers.add(m);
+  });
+}
+
+// ---- 탭 ----
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button,.page").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); $(b.dataset.p).classList.add("on");
+});
+
+load();
+</script>
+</body>
+</html>
